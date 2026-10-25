@@ -32,12 +32,12 @@ jobs:
 
     steps:
       - name: Checkout Repository (Full History for Gitleaks)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        uses: actions/setup-python@v5.4.0
         with:
           python-version: "3.12"
           cache: "pip"
@@ -66,13 +66,13 @@ jobs:
 
       - name: Upload Pytest Test Results
         if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: pytest-results
           path: reports/junit.xml
 
       - name: Gitleaks Secret Detection Scan
-        uses: gitleaks/gitleaks-action@73f911a3db50a31ea7ef2488a6d63cc67a42b10a # v2.3.9
+        uses: gitleaks/gitleaks-action@v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ARGS: --verbose --redact
@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload Checkov SARIF Artifact
         if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: checkov-sarif-report
           path: reports/checkov.sarif
@@ -100,17 +100,17 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b5ca5143103721fb5215c6de6cfc80ab66dbb2dd # v3.10.0
+        uses: docker/setup-buildx-action@v3.10.0
 
       - name: Build Multi-Stage Docker Image
         run: |
           docker buildx build --load -t securedeploy:local .
 
       - name: Trivy Container Vulnerability Scan
-        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # 0.29.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: securedeploy:local
           format: "table"
@@ -121,7 +121,7 @@ jobs:
 
       - name: Upload Trivy Scan Report
         if: always()
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: trivy-report
           path: reports/trivy-report.txt
@@ -173,7 +173,7 @@ jobs:
           docker save securedeploy:local | gzip > image-artifact/securedeploy-image.tar.gz
 
       - name: Upload Docker Image Artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@v4.6.1
         with:
           name: docker-image-artifact
           path: image-artifact/securedeploy-image.tar.gz
@@ -194,7 +194,7 @@ jobs:
 
     steps:
       - name: Download Scanned Docker Image Artifact
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@v4.1.9
         with:
           name: docker-image-artifact
 
@@ -203,7 +203,7 @@ jobs:
           gunzip -c securedeploy-image.tar.gz | docker load
 
       - name: Log in to GitHub Container Registry (GHCR)
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
