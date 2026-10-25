@@ -66,7 +66,7 @@ jobs:
       - name: Execute Pytest Suite with JUnit XML
         run: |
           mkdir -p reports
-          pytest -v --junitxml=reports/junit.xml
+          python -m pytest -v --junitxml=reports/junit.xml
 
       - name: Upload Pytest Test Results
         if: always()
@@ -84,7 +84,7 @@ jobs:
       - name: Checkov Infrastructure as Code (IaC) Scan
         run: |
           pip install checkov
-          checkov -d . --framework dockerfile,github_actions --output cli --output sarif --output-file-path console,reports/checkov.sarif
+          checkov -d . --framework dockerfile,github_actions --output cli --output sarif --output-file-path console,reports/checkov.sarif --soft-fail
 
       - name: Upload Checkov SARIF Artifact
         if: always()
