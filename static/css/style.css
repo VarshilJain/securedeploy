@@ -1,0 +1,671 @@
+/* ==========================================================================
+   SecureDeploy ML - Design System & Stylesheet
+   Theme: Accessible Blue-and-White Corporate Engineering
+   No external frameworks (Vanilla CSS only)
+   ========================================================================== */
+
+:root {
+  /* Color Palette */
+  --primary-900: #0a2540;
+  --primary-800: #0f4c81;
+  --primary-700: #19609f;
+  --primary-600: #1f77bd;
+  --primary-500: #298cd4;
+  --primary-100: #e3effa;
+  --primary-50:  #f0f6fc;
+
+  --neutral-900: #0f172a;
+  --neutral-800: #1e293b;
+  --neutral-700: #334155;
+  --neutral-600: #475569;
+  --neutral-400: #94a3b8;
+  --neutral-300: #cbd5e1;
+  --neutral-200: #e2e8f0;
+  --neutral-100: #f1f5f9;
+  --neutral-50:  #f8fafc;
+  --white:       #ffffff;
+
+  /* Status Colors (WCAG AA Compliant Contrast) */
+  --status-passed:  #15803d;
+  --status-passed-bg: #dcfce7;
+  --status-failed:  #b91c1c;
+  --status-failed-bg: #fee2e2;
+  --status-notrun:  #b45309;
+  --status-notrun-bg: #fef3c7;
+  --status-unknown: #475569;
+  --status-unknown-bg: #f1f5f9;
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Shadows & Borders */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+/* Reset & Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--primary-50);
+  color: var(--neutral-800);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Accessible Focus States */
+a:focus-visible,
+button:focus-visible,
+textarea:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--primary-600);
+  outline-offset: 2px;
+}
+
+/* Header */
+.top-nav {
+  background-color: var(--primary-900);
+  color: var(--white);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-md);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand-logo {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.brand-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--white);
+}
+
+.brand-subtitle {
+  font-size: 0.85rem;
+  color: var(--neutral-300);
+}
+
+.nav-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.status-healthy { background-color: #22c55e; box-shadow: 0 0 6px #22c55e; }
+.status-dot.status-unavailable { background-color: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.status-dot.status-unknown { background-color: #94a3b8; }
+
+/* Navigation Tabs */
+.nav-tabs {
+  background-color: var(--white);
+  border-bottom: 1px solid var(--neutral-200);
+  padding: 0 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  color: var(--primary-700);
+}
+
+.tab-button.active {
+  color: var(--primary-800);
+  border-bottom-color: var(--primary-800);
+}
+
+/* Layout */
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem;
+  flex: 1;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 860px) {
+  .grid-layout {
+    grid-template-columns: 1fr;
+  }
+  .top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+/* Cards */
+.card {
+  background-color: var(--white);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--neutral-100);
+  padding-bottom: 0.75rem;
+}
+
+.card-header h2 {
+  font-size: 1.2rem;
+  color: var(--primary-900);
+  font-weight: 600;
+}
+
+.card-desc {
+  font-size: 0.85rem;
+  color: var(--neutral-600);
+  margin-top: 0.25rem;
+}
+
+/* Form Controls */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--neutral-800);
+  margin-bottom: 0.35rem;
+}
+
+.required {
+  color: var(--status-failed);
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 1.5px solid var(--neutral-300);
+  border-radius: var(--radius-md);
+  resize: vertical;
+  background-color: var(--white);
+  transition: border-color 0.15s ease;
+}
+
+.form-control:focus {
+  border-color: var(--primary-700);
+}
+
+.form-control.input-error {
+  border-color: var(--status-failed);
+  background-color: #fffaf0;
+}
+
+.input-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.validation-msg {
+  color: var(--status-failed);
+  font-weight: 500;
+}
+
+.char-counter {
+  color: var(--neutral-600);
+}
+
+/* Example Chips */
+.example-headlines {
+  margin-bottom: 1.25rem;
+}
+
+.example-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.example-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip-btn {
+  background-color: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  color: var(--primary-800);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chip-btn:hover {
+  background-color: var(--primary-100);
+  border-color: var(--primary-500);
+}
+
+/* Buttons */
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.btn {
+  padding: 0.65rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-800);
+  color: var(--white);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-900);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: var(--white);
+  color: var(--neutral-700);
+  border-color: var(--neutral-300);
+}
+
+.btn-secondary:hover {
+  background-color: var(--neutral-50);
+  border-color: var(--neutral-400);
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Alerts */
+.alert-box {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-top: 1rem;
+}
+
+.alert-info {
+  background-color: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  color: var(--primary-900);
+}
+
+.alert-warning {
+  background-color: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+/* Results Card */
+.result-placeholder {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--neutral-400);
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.result-badge-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.badge {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-positive {
+  background-color: var(--status-passed-bg);
+  color: var(--status-passed);
+  border: 1px solid #86efac;
+}
+
+.badge-negative {
+  background-color: var(--status-failed-bg);
+  color: var(--status-failed);
+  border: 1px solid #fca5a5;
+}
+
+.badge-neutral {
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.confidence-text {
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+}
+
+.progress-bar-wrapper {
+  background-color: var(--neutral-200);
+  border-radius: 9999px;
+  height: 10px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary-600);
+  transition: width 0.4s ease;
+}
+
+/* Per-Class Probabilities */
+.probability-breakdown h3 {
+  font-size: 0.95rem;
+  color: var(--neutral-800);
+  margin-bottom: 0.75rem;
+}
+
+.prob-row {
+  display: grid;
+  grid-template-columns: 80px 60px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.prob-label {
+  font-weight: 600;
+}
+
+.mini-bar-bg {
+  background-color: var(--neutral-200);
+  height: 8px;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.mini-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.bar-pos { background-color: var(--status-passed); }
+.bar-neu { background-color: #0284c7; }
+.bar-neg { background-color: var(--status-failed); }
+
+/* History Section */
+.history-section {
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--neutral-200);
+  padding-top: 1rem;
+}
+
+.history-section h3 {
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+  margin-bottom: 0.5rem;
+}
+
+.history-list {
+  list-style: none;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  background-color: var(--neutral-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--neutral-200);
+}
+
+.history-text {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* DevSecOps Section */
+.pipeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.pipeline-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  background-color: var(--neutral-50);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.85rem;
+}
+
+.pipeline-summary-bar code {
+  font-family: var(--font-mono);
+  background-color: var(--neutral-200);
+  padding: 0.15rem 0.35rem;
+  border-radius: var(--radius-sm);
+}
+
+.cache-tag {
+  color: var(--neutral-600);
+  font-style: italic;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.status-card {
+  background-color: var(--white);
+  border: 1.5px solid var(--neutral-200);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.card-icon {
+  font-size: 1.5rem;
+}
+
+.status-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+}
+
+.status-pill.status-passed {
+  background-color: var(--status-passed-bg);
+  color: var(--status-passed);
+  border: 1px solid #86efac;
+}
+
+.status-pill.status-failed {
+  background-color: var(--status-failed-bg);
+  color: var(--status-failed);
+  border: 1px solid #fca5a5;
+}
+
+.status-pill.status-not_run {
+  background-color: var(--status-notrun-bg);
+  color: var(--status-notrun);
+  border: 1px solid #fcd34d;
+}
+
+.status-pill.status-unknown {
+  background-color: var(--status-unknown-bg);
+  color: var(--status-unknown);
+  border: 1px solid var(--neutral-300);
+}
+
+.status-card .card-title {
+  font-size: 1rem;
+  color: var(--primary-900);
+  margin-bottom: 0.35rem;
+}
+
+.status-card .card-info {
+  font-size: 0.85rem;
+  color: var(--neutral-600);
+  flex: 1;
+}
+
+.status-card .card-footer {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--neutral-200);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-700);
+}
+
+/* Footer */
+.footer {
+  background-color: var(--neutral-900);
+  color: var(--neutral-400);
+  padding: 1.5rem 2rem;
+  font-size: 0.85rem;
+  margin-top: 2rem;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: center;
+}

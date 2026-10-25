@@ -1,0 +1,38 @@
+# ==============================================================================
+# Single-Stage Comparison Dockerfile (Educational Demonstration Only)
+# Used in PROJECT_REPORT.md to contrast image size with Multi-Stage Dockerfile.
+# ==============================================================================
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Copy dependency specifications
+COPY requirements.txt .
+
+# Install all dependencies directly in system python without multi-stage isolation
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy all source files and dataset
+COPY . .
+
+# Run model training directly in runtime layer (leaves build remnants)
+RUN python train.py --data data/headlines.csv --output /app/model.joblib
+
+# Creates user
+RUN groupadd -g 10001 appgroup && \
+    useradd -u 10001 -g appgroup -s /sbin/nologin -M appuser && \
+    chown -R appuser:appgroup /app
+
+USER 10001:10001
+
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health').read()"]
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "app:create_app()"]

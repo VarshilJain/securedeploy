@@ -1,0 +1,11 @@
+# Core Production Dependencies
+Flask==3.0.3
+Werkzeug==3.1.9
+Jinja2==3.1.6
+scikit-learn==1.5.2
+numpy==2.4.6
+scipy==1.17.1
+joblib==1.6.0
+pandas==3.1.0
+requests==2.34.2
+gunicorn==22.0.0; sys_platform != 'win32'

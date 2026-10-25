@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SecureDeploy ML: Financial News Sentiment Classifier with automated DevSecOps CI/CD pipeline, container security scans, and GHCR registry publishing.">
+  <title>SecureDeploy ML &mdash; Financial News Sentiment &amp; DevSecOps</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="top-nav" role="banner">
+    <div class="nav-brand">
+      <div class="brand-logo" aria-hidden="true">&#x1F6E1;&#xFE0F;</div>
+      <div>
+        <h1 class="brand-title">SecureDeploy ML</h1>
+        <p class="brand-subtitle">Cloud Computing Lab (DJS23ALMD701) &bull; DevSecOps Pipeline</p>
+      </div>
+    </div>
+    <div class="nav-status-badge">
+      <span class="status-dot status-unknown" id="api-status-dot" aria-hidden="true"></span>
+      <span id="api-status-text" class="status-text">Checking API...</span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs" aria-label="Main Navigation">
+    <button type="button" class="tab-button active" id="tab-btn-classifier" data-target="section-classifier" aria-controls="section-classifier" aria-selected="true" role="tab">
+      &#x1F4CA; Sentiment Classifier
+    </button>
+    <button type="button" class="tab-button" id="tab-btn-devsecops" data-target="section-devsecops" aria-controls="section-devsecops" aria-selected="false" role="tab">
+      &#x1F6E1;&#xFE0F; DevSecOps Status
+    </button>
+  </nav>
+
+  <main class="container">
+    <!-- SECTION 1: Sentiment Classifier -->
+    <section id="section-classifier" class="tab-content active" role="tabpanel" aria-labelledby="tab-btn-classifier">
+      <div class="grid-layout">
+        <!-- Input Column -->
+        <div class="card">
+          <div class="card-header">
+            <h2>Financial News Headline Input</h2>
+            <p class="card-desc">Paste or type a market headline to analyze financial sentiment using TF-IDF and Logistic Regression.</p>
+          </div>
+
+          <form id="sentiment-form" novalidate>
+            <div class="form-group">
+              <label for="headline-input" class="form-label">
+                Headline Text <span class="required" aria-hidden="true">*</span>
+              </label>
+              <textarea 
+                id="headline-input" 
+                name="headline" 
+                rows="4" 
+                class="form-control" 
+                placeholder="e.g. Quarterly net profit surges 35% beating market estimates on robust enterprise cloud sales..."
+                maxlength="500" 
+                required 
+                aria-describedby="char-count-desc validation-error"></textarea>
+              <div class="input-meta">
+                <span id="validation-error" class="validation-msg" role="alert" aria-live="polite"></span>
+                <span id="char-count-desc" class="char-counter" aria-live="polite">0 / 500 characters</span>
+              </div>
+            </div>
+
+            <div class="example-headlines">
+              <span class="example-title">Quick Examples:</span>
+              <div class="example-chips" role="group" aria-label="Clickable sample headlines">
+                <button type="button" class="chip-btn" data-text="Quarterly net profit surges 35% beating market forecasts on record cloud revenue">
+                  Profit Surge (+35%)
+                </button>
+                <button type="button" class="chip-btn" data-text="Operating losses widen significantly as supplier costs soar and revenue drops">
+                  Losses Widen (-18%)
+                </button>
+                <button type="button" class="chip-btn" data-text="Federal Reserve maintains benchmark interest rate unchanged at scheduled meeting">
+                  Fed Rate Hold (5.25%)
+                </button>
+                <button type="button" class="chip-btn" data-text="Company files routine annual disclosure report with securities commission">
+                  SEC Routine Filing
+                </button>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" id="analyze-btn" class="btn btn-primary">
+                <span class="btn-spinner" id="analyze-spinner" aria-hidden="true" hidden></span>
+                <span id="analyze-btn-text">Analyze Sentiment</span>
+              </button>
+              <button type="button" id="clear-btn" class="btn btn-secondary">
+                Clear
+              </button>
+            </div>
+          </form>
+
+          <div class="alert-box alert-info">
+            <strong>Demonstration Dataset Notice:</strong> Trained on a curated 180-sample demonstration dataset for Cloud Computing Lab learning. Not intended for commercial algorithmic trading.
+          </div>
+        </div>
+
+        <!-- Result Column -->
+        <div class="card" id="results-card">
+          <div class="card-header">
+            <h2>Analysis Results</h2>
+            <p class="card-desc">Model inference prediction with confidence metrics.</p>
+          </div>
+
+          <!-- Empty State -->
+          <div id="result-empty" class="result-placeholder">
+            <div class="empty-icon" aria-hidden="true">&#x1F4C8;</div>
+            <p class="empty-text">No prediction yet. Enter a headline and click <strong>Analyze Sentiment</strong> to inspect results.</p>
+          </div>
+
+          <!-- Live Result Card -->
+          <div id="result-content" class="result-box" hidden aria-live="polite">
+            <div class="result-badge-row">
+              <span class="badge" id="result-badge">POSITIVE</span>
+              <span class="confidence-text">Confidence: <strong id="result-confidence">0.00%</strong></span>
+            </div>
+
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar" id="result-confidence-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+            </div>
+
+            <div class="probability-breakdown">
+              <h3>Per-Class Probabilities</h3>
+              <div class="prob-row">
+                <span class="prob-label">Positive:</span>
+                <span class="prob-value" id="prob-positive">0.00%</span>
+                <div class="mini-bar-bg"><div class="mini-bar bar-pos" id="bar-pos" style="width: 0%"></div></div>
+              </div>
+              <div class="prob-row">
+                <span class="prob-label">Neutral:</span>
+                <span class="prob-value" id="prob-neutral">0.00%</span>
+                <div class="mini-bar-bg"><div class="mini-bar bar-neu" id="bar-neu" style="width: 0%"></div></div>
+              </div>
+              <div class="prob-row">
+                <span class="prob-label">Negative:</span>
+                <span class="prob-value" id="prob-negative">0.00%</span>
+                <div class="mini-bar-bg"><div class="mini-bar bar-neg" id="bar-neg" style="width: 0%"></div></div>
+              </div>
+            </div>
+
+            <!-- In-Memory History -->
+            <div class="history-section">
+              <h3>Recent Analyses (Session Memory)</h3>
+              <ul id="history-list" class="history-list" aria-label="Last 5 predictions in current browser session">
+                <!-- Dynamically populated -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: DevSecOps Status -->
+    <section id="section-devsecops" class="tab-content" role="tabpanel" aria-labelledby="tab-btn-devsecops" hidden>
+      <div class="card">
+        <div class="card-header pipeline-header">
+          <div>
+            <h2>Automated DevSecOps Pipeline Gates</h2>
+            <p class="card-desc">
+              Multi-stage verification: Unit tests, Checkov IaC, Gitleaks, Docker build, Trivy vulnerability gate, and GHCR registry publishing.
+            </p>
+          </div>
+          <button type="button" id="refresh-pipeline-btn" class="btn btn-secondary btn-sm">
+            &#x21BB; Refresh Status
+          </button>
+        </div>
+
+        <div id="pipeline-notice-banner" class="alert-box alert-warning">
+          <span id="pipeline-notice-text">Checking repository configuration...</span>
+        </div>
+
+        <div class="pipeline-summary-bar">
+          <div><strong>Repository:</strong> <span id="pipeline-repo-name">Local / Unset</span></div>
+          <div><strong>Workflow:</strong> <code>.github/workflows/devsecops.yml</code></div>
+          <div><strong>Last Checked:</strong> <span id="pipeline-last-checked">Never</span> <span id="pipeline-cache-tag" class="cache-tag" hidden>(Cached)</span></div>
+        </div>
+
+        <div class="status-grid" role="region" aria-label="DevSecOps Stage Status Cards">
+          <!-- Card 1: Unit Tests & Quality -->
+          <div class="status-card" id="card-unit-tests">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x1F9EA;</span>
+              <span class="status-pill status-unknown" id="pill-unit_tests">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">Unit Tests &amp; Linting</h3>
+            <p class="card-info">Pytest suite, Black code formatter check, compileall, and pip check.</p>
+            <div class="card-footer">Gate: 0 failures, 100% test pass</div>
+          </div>
+
+          <!-- Card 2: Docker Build -->
+          <div class="status-card" id="card-docker-build">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x1F433;</span>
+              <span class="status-pill status-unknown" id="pill-docker_build">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">Docker Multi-Stage Build</h3>
+            <p class="card-info">Multi-stage buildx image packaging with baked model and non-root UID 10001.</p>
+            <div class="card-footer">Gate: Container healthcheck OK</div>
+          </div>
+
+          <!-- Card 3: Trivy Scanner -->
+          <div class="status-card" id="card-trivy">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x1F50D;</span>
+              <span class="status-pill status-unknown" id="pill-trivy">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">Trivy Vulnerability Scan</h3>
+            <p class="card-info">Container image vulnerability &amp; misconfiguration scanning.</p>
+            <div class="card-footer">Gate: 0 HIGH / CRITICAL fixable CVEs</div>
+          </div>
+
+          <!-- Card 4: Checkov Scanner -->
+          <div class="status-card" id="card-checkov">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x1F6E1;&#xFE0F;</span>
+              <span class="status-pill status-unknown" id="pill-checkov">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">Checkov IaC Security</h3>
+            <p class="card-info">Static analysis on Dockerfile and GitHub Actions workflow security.</p>
+            <div class="card-footer">Gate: 0 policy violations</div>
+          </div>
+
+          <!-- Card 5: Gitleaks Scanner -->
+          <div class="status-card" id="card-gitleaks">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x1F511;</span>
+              <span class="status-pill status-unknown" id="pill-gitleaks">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">Gitleaks Secret Detection</h3>
+            <p class="card-info">Scans full Git history and working tree for leaked API keys, tokens, or credentials.</p>
+            <div class="card-footer">Gate: 0 leaked secrets</div>
+          </div>
+
+          <!-- Card 6: CI Pipeline -->
+          <div class="status-card" id="card-pipeline">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x2699;&#xFE0F;</span>
+              <span class="status-pill status-unknown" id="pill-pipeline">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">GitHub Actions Pipeline</h3>
+            <p class="card-info">Overall execution of devsecops.yml workflow on push/pull_request.</p>
+            <div class="card-footer">Gate: All required jobs green</div>
+          </div>
+
+          <!-- Card 7: GHCR Registry Publish -->
+          <div class="status-card" id="card-ghcr">
+            <div class="card-top">
+              <span class="card-icon" aria-hidden="true">&#x1F4E6;</span>
+              <span class="status-pill status-unknown" id="pill-ghcr_publish">UNKNOWN</span>
+            </div>
+            <h3 class="card-title">GHCR Container Publish</h3>
+            <p class="card-info">Publishes verified image artifact to ghcr.io on main branch merge.</p>
+            <div class="card-footer">Gate: Post-scan publication only</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-content">
+      <p>SecureDeploy ML &bull; BTech AI &amp; ML Cloud Computing Lab Mini-Project (DJS23ALMD701)</p>
+      <p>Experiments Demonstrated: Exp 4 (Docker Multi-Stage), Exp 8 (DevSecOps Scanners), Exp 13 (GitHub Actions &amp; GHCR)</p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

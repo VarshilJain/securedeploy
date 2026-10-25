@@ -1,0 +1,32 @@
+# ==============================================================================
+# INSECURE Demonstration Dockerfile (Educational Demonstration Only)
+# Used for safe security scanner demonstrations with Checkov and Trivy.
+# DO NOT DEPLOY TO PRODUCTION.
+#
+# Deliberate Flaws:
+# 1. Base image uses floating unpinned tag (python:latest) -> Checkov CKV_DOCKER_7
+# 2. Uses ADD with external URL instead of COPY/curl -> Checkov CKV_DOCKER_11
+# 3. Missing HEALTHCHECK instruction -> Checkov CKV_DOCKER_2
+# 4. Runs as default root user (no USER instruction) -> Checkov CKV_DOCKER_3 / CKV_DOCKER_8
+# 5. Missing --no-cache-dir in pip install (bloats layer)
+# ==============================================================================
+
+FROM python:latest
+
+WORKDIR /app
+
+# FLUSH PIP CACHE MISSING
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+
+# INSECURE: Using ADD with remote URL instead of COPY
+ADD https://raw.githubusercontent.com/docker-library/hello-world/master/hello.c /tmp/hello.c
+
+COPY . /app
+
+# INSECURE: No USER instruction (runs as root UID 0)
+# INSECURE: No HEALTHCHECK instruction
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]

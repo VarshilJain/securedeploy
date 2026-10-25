@@ -1,0 +1,262 @@
+# ==============================================================================
+# SecureDeploy ML - Automated DevSecOps Pipeline
+# Experiment 13: CI/CD with GitHub Actions publishing to GHCR
+# Cloud Computing Lab DJS23ALMD701
+# ==============================================================================
+
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Enforce least privilege by default
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # JOB 1: Quality, Linting, Tests, Secrets & Static Security Analysis
+  # ----------------------------------------------------------------------------
+  quality-and-secrets:
+    name: Code Quality, Unit Tests & Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository (Full History for Gitleaks)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Development Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Bytecode Compilation Check
+        run: |
+          python -m compileall -q app.py train.py tests
+
+      - name: Dependency Tree Compatibility Check
+        run: |
+          python -m pip check
+
+      - name: Black Code Formatting Gate
+        run: |
+          black --check .
+
+      - name: Execute Pytest Suite with JUnit XML
+        run: |
+          mkdir -p reports
+          pytest -v --junitxml=reports/junit.xml
+
+      - name: Upload Pytest Test Results
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: pytest-results
+          path: reports/junit.xml
+
+      - name: Gitleaks Secret Detection Scan
+        uses: gitleaks/gitleaks-action@73f911a3db50a31ea7ef2488a6d63cc67a42b10a # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ARGS: --verbose --redact
+
+      - name: Checkov Infrastructure as Code (IaC) Scan
+        run: |
+          pip install checkov
+          checkov -d . --framework dockerfile,github_actions --output cli --output sarif --output-file-path console,reports/checkov.sarif
+
+      - name: Upload Checkov SARIF Artifact
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: checkov-sarif-report
+          path: reports/checkov.sarif
+
+  # ----------------------------------------------------------------------------
+  # JOB 2: Docker Build, Model Baking, Trivy Image Scan & Smoke Test
+  # ----------------------------------------------------------------------------
+  docker-build-and-scan:
+    name: Docker Build, Security Gate & Smoke Test
+    needs: quality-and-secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca5143103721fb5215c6de6cfc80ab66dbb2dd # v3.10.0
+
+      - name: Build Multi-Stage Docker Image
+        run: |
+          docker buildx build --load -t securedeploy:local .
+
+      - name: Trivy Container Vulnerability Scan
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # 0.29.0
+        with:
+          image-ref: securedeploy:local
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "HIGH,CRITICAL"
+          output: "reports/trivy-report.txt"
+
+      - name: Upload Trivy Scan Report
+        if: always()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: trivy-report
+          path: reports/trivy-report.txt
+
+      - name: Container Runtime Smoke Test
+        run: |
+          echo "[*] Starting test container..."
+          docker run -d --name smoke-test -p 5000:5000 securedeploy:local
+          
+          echo "[*] Waiting for container healthcheck to turn healthy..."
+          for i in {1..30}; do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' smoke-test 2>/dev/null || echo "starting")
+            echo "Health status: $STATUS (attempt $i/30)"
+            if [ "$STATUS" = "healthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+          
+          # Assert healthcheck passed
+          if [ "$STATUS" != "healthy" ]; then
+            echo "[!] Container failed to reach healthy state!"
+            docker logs smoke-test
+            exit 1
+          fi
+          
+          echo "[*] Testing /health endpoint..."
+          curl -f -s http://127.0.0.1:5000/health | grep '"status":"ok"'
+          
+          echo "[*] Testing /predict endpoint..."
+          curl -f -s -X POST http://127.0.0.1:5000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"text": "Quarterly profit surges 25% beating market forecasts"}' | grep '"label"'
+            
+          echo "[*] Verifying container runs as non-root user (UID 10001)..."
+          CONTAINER_UID=$(docker exec smoke-test id -u)
+          if [ "$CONTAINER_UID" != "10001" ]; then
+            echo "[!] Container running as UID $CONTAINER_UID instead of 10001!"
+            exit 1
+          fi
+          echo "[+] Verified non-root user execution: UID $CONTAINER_UID"
+          
+          docker stop smoke-test
+          docker rm smoke-test
+
+      - name: Export Scanned Docker Image Artifact
+        run: |
+          mkdir -p image-artifact
+          docker save securedeploy:local | gzip > image-artifact/securedeploy-image.tar.gz
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: docker-image-artifact
+          path: image-artifact/securedeploy-image.tar.gz
+          retention-days: 1
+
+  # ----------------------------------------------------------------------------
+  # JOB 3: Publish Verified Image to GitHub Container Registry (GHCR)
+  # ----------------------------------------------------------------------------
+  publish-ghcr:
+    name: Publish Verified Container to GHCR
+    needs: [quality-and-secrets, docker-build-and-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Download Scanned Docker Image Artifact
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: docker-image-artifact
+
+      - name: Load Scanned Docker Image (No Rebuild)
+        run: |
+          gunzip -c securedeploy-image.tar.gz | docker load
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push Image to GHCR
+        run: |
+          # Lowercase repository owner for GHCR compatibility
+          OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME="ghcr.io/${OWNER_LOWER}/securedeploy"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          
+          echo "Tagging image: ${IMAGE_NAME}"
+          docker tag securedeploy:local "${IMAGE_NAME}:main"
+          docker tag securedeploy:local "${IMAGE_NAME}:${SHORT_SHA}"
+          docker tag securedeploy:local "${IMAGE_NAME}:latest"
+          
+          echo "Pushing images to GHCR..."
+          docker push "${IMAGE_NAME}:main"
+          docker push "${IMAGE_NAME}:${SHORT_SHA}"
+          docker push "${IMAGE_NAME}:latest"
+          
+          IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${IMAGE_NAME}:latest" 2>/dev/null || echo "${IMAGE_NAME}:latest")
+          
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "IMAGE_DIGEST=${IMAGE_DIGEST}" >> $GITHUB_ENV
+          echo "SHORT_SHA=${SHORT_SHA}" >> $GITHUB_ENV
+
+      - name: Generate GitHub Actions Step Summary
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          ## \U0001f6e1\ufe0f SecureDeploy ML &mdash; DevSecOps Pipeline Summary
+          
+          | Gate / Stage | Verification Tool | Gate Result |
+          | :--- | :--- | :--- |
+          | **Unit Testing & Linting** | Pytest + Black + compileall | \u2705 Passed |
+          | **Secret Detection** | Gitleaks (Full History) | \u2705 0 Leaked Secrets |
+          | **Infrastructure as Code** | Checkov (Dockerfile & Workflow) | \u2705 0 Violations |
+          | **Container Packaging** | Docker Multi-Stage (Non-root 10001) | \u2705 Healthy |
+          | **Image Vulnerabilities** | Trivy (HIGH,CRITICAL fixable) | \u2705 0 Fixable CVEs |
+          | **Registry Publication** | GHCR (No Rebuild, Artifact Reused) | \u2705 Published |
+
+          ### Published Container Tags
+          - \`${{ env.IMAGE_NAME }}:main\`
+          - \`${{ env.IMAGE_NAME }}:${{ env.SHORT_SHA }}\`
+          - \`${{ env.IMAGE_NAME }}:latest\`
+          EOF
+
+      - name: Optional Render Web Service Deploy Hook
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "[*] Triggering optional Render deployment webhook..."
+          curl -s -f -X POST "${RENDER_DEPLOY_HOOK_URL}" > /dev/null
+          echo "[+] Render deployment webhook dispatched successfully."
