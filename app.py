@@ -396,6 +396,22 @@ def create_app(
             return jsonify(result), 200
 
         repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+        if not repo and not app.config.get("TESTING"):
+            try:
+                import subprocess
+
+                remote_url = subprocess.check_output(
+                    ["git", "remote", "get-url", "origin"], text=True, timeout=2
+                ).strip()
+                if "github.com" in remote_url:
+                    repo = (
+                        remote_url.split("github.com")[-1]
+                        .lstrip("/:")
+                        .removesuffix(".git")
+                    )
+            except Exception:
+                repo = ""
+
         token = os.environ.get("GITHUB_TOKEN", "").strip() or None
 
         if not repo:
